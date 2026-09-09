@@ -425,6 +425,10 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
                hello | 2.10-5        | questing/universe        | source
                hello | 2.10-5build1  | resolute/universe        | source
         """),
+        # SRU and NEW package (no rmadison entry yet for target series)
+        textwrap.dedent("""hello | 2.10-5        | resolute        | source
+               hello | 2.10-5build1  | stonking        | source
+        """),
     ]
 
     for tmpl in rmadison_tmpls:

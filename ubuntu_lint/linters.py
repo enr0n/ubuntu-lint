@@ -324,16 +324,17 @@ def check_sru_version_string_breaks_upgrades(context: Context):
 
     target_version = context.get_package_version()
     target_series = context.get_series()
+    di = distro_info.UbuntuDistroInfo()
+
+    if not di.valid(target_series):
+        context.lint_error(f"{target_series} is not known by distro-info")
 
     if target_series not in max_version_by_series.keys():
-        context.lint_fail(f"{target_series} is not know by rmadison")
+        # rmadison does not have data for series yet, probably a NEW package
+        max_version_by_series[target_series] = ""
 
     try:
-        compare_series = [
-            d
-            for d in distro_info.UbuntuDistroInfo().get_all()
-            if d in max_version_by_series
-        ]
+        compare_series = [d for d in di.get_all() if d in max_version_by_series]
         index = compare_series.index(target_series)
     except ValueError:
         context.lint_error(f"{target_series} is not known by distro-info")
