@@ -446,6 +446,16 @@ def check_missing_version_suffix(context: Context):
         version.debian_version or version.full_version or "",
     )
 
+    msg = (
+        f"version {version.full_version} is missing a proper 'ubuntuX' or 'buildX' "
+        f"suffix, please check {docs} to ensure version string is correct"
+    )
+
+    if not version.debian_version and not match:
+        # Many Ubuntu-only native packages do not follow the new recommendation
+        # to add an "ubuntu" suffix, so only warn in this case.
+        context.lint_warn(msg)
+
     if (
         not match
         or match.group(1) not in ("ubuntu", "build")
@@ -457,10 +467,7 @@ def check_missing_version_suffix(context: Context):
             and (version.debian_version or match.group(1) == "build")
         )
     ):
-        context.lint_fail(
-            f"version {version.full_version} is missing a proper 'ubuntuX' or 'buildX' "
-            f"suffix, please check {docs} to ensure version string is correct"
-        )
+        context.lint_fail(msg)
 
 
 def check_merge_missing_new_debian_changelog(context: Context):

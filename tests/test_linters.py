@@ -639,35 +639,37 @@ def test_check_release_mismatch():
 
 
 @pytest.mark.parametrize(
-    "version, expect_pass",
+    "version, expect",
     [
         # Pass
-        ("1.2.3-0ubuntu1", True),
-        ("1.2.3-0ubuntu1.1", True),
-        ("1.2.3-1ubuntu2", True),
-        ("1.2.3-1ubuntu2~22.04.1", True),
-        ("1.0ubuntu", True),
-        ("1.2.3-0build1", True),
-        ("1.2.3-1build2", True),
-        ("20200505dfsg0-5ubuntu1", True),
-        ("2.3+dfsg-1ubuntu2", True),
-        ("2.3.7+git20230731.5fc64cde+dfsg-4ubuntu1", True),
-        ("2.0ubuntu.build1", True),
-        ("1.0build1", True),
+        ("1.2.3-0ubuntu1", ubuntu_lint.LintResult.OK),
+        ("1.2.3-0ubuntu1.1", ubuntu_lint.LintResult.OK),
+        ("1.2.3-1ubuntu2", ubuntu_lint.LintResult.OK),
+        ("1.2.3-1ubuntu2~22.04.1", ubuntu_lint.LintResult.OK),
+        ("1.0ubuntu", ubuntu_lint.LintResult.OK),
+        ("1.2.3-0build1", ubuntu_lint.LintResult.OK),
+        ("1.2.3-1build2", ubuntu_lint.LintResult.OK),
+        ("20200505dfsg0-5ubuntu1", ubuntu_lint.LintResult.OK),
+        ("2.3+dfsg-1ubuntu2", ubuntu_lint.LintResult.OK),
+        ("2.3.7+git20230731.5fc64cde+dfsg-4ubuntu1", ubuntu_lint.LintResult.OK),
+        ("2.0ubuntu.build1", ubuntu_lint.LintResult.OK),
+        ("1.0build1", ubuntu_lint.LintResult.OK),
         # Fail
-        ("1.2.3-1", False),
-        ("1.2.3-0ubunut1.1", False),
-        ("1.2.3-1ubunt2", False),
-        ("1.2.3-1ubuntuu2~22.04.1", False),
-        ("1.0", False),
-        ("1.2.3-0maysync1", False),
-        ("20200505dfsg0-5", False),
-        ("2.3.7+git20230731.5fc64cde+dfsg-4", False),
-        ("1.0build", False),
-        ("1.2-3ubuntu", False),
+        ("1.2.3-1", ubuntu_lint.LintResult.FAIL),
+        ("1.2.3-0ubunut1.1", ubuntu_lint.LintResult.FAIL),
+        ("1.2.3-1ubunt2", ubuntu_lint.LintResult.FAIL),
+        ("1.2.3-1ubuntuu2~22.04.1", ubuntu_lint.LintResult.FAIL),
+        ("1.2.3-0maysync1", ubuntu_lint.LintResult.FAIL),
+        ("20200505dfsg0-5", ubuntu_lint.LintResult.FAIL),
+        ("2.3.7+git20230731.5fc64cde+dfsg-4", ubuntu_lint.LintResult.FAIL),
+        ("1.2-3ubuntu", ubuntu_lint.LintResult.FAIL),
+        ("1.0build", ubuntu_lint.LintResult.FAIL),
+        # Warn (native packages)
+        ("1.0", ubuntu_lint.LintResult.WARN),
+        ("1:26.04.13", ubuntu_lint.LintResult.WARN),
     ],
 )
-def test_check_missing_version_suffix(version: str, expect_pass: bool):
+def test_check_missing_version_suffix(version: str, expect: ubuntu_lint.LintResult):
     changelog_tmpl = """hello ({version}) resolute; urgency=medium
 
   * Fix a bug (LP: #12345678)
@@ -681,7 +683,7 @@ def test_check_missing_version_suffix(version: str, expect_pass: bool):
     changes["Version"] = version
     context_changes = ubuntu_lint.Context(changes=changes)
 
-    if expect_pass:
+    if expect == ubuntu_lint.LintResult.OK:
         ubuntu_lint.check_missing_version_suffix(context_changelog)
         ubuntu_lint.check_missing_version_suffix(context_changes)
     else:
@@ -690,9 +692,11 @@ def test_check_missing_version_suffix(version: str, expect_pass: bool):
             match=re.escape(
                 f"version {version} is missing a proper 'ubuntuX' or 'buildX' suffix"
             ),
-        ):
+        ) as e:
             ubuntu_lint.check_missing_version_suffix(context_changelog)
             ubuntu_lint.check_missing_version_suffix(context_changes)
+
+        assert expect == e.value.result
 
 
 def test_check_missing_version_suffix_debian_upload():
