@@ -103,26 +103,10 @@ def check_git_ubuntu_references_mismatch(context: Context):
         context.lint_fail("Vcs-Git fields in changes file do not match the remote")
 
 
-def check_missing_pending_changelog_entry(context: Context):
-    """
-    Checks if the changes file is missing pending changelog entries,
-    i.e. entries for uploads which are still in -proposed. This is a warning
-    for the development release, and an error for stable releases.
-    """
-    if context.is_unreleased():
-        context.lint_skip("changelog is still UNRELEASED")
-
+@lru_cache(maxsize=128)
+def _get_pending_versions(context: Context) -> set[str]:
     dist = context.get_series()
     package = context.get_source_package_name()
-
-    # Mangle the Changes field so that we can parse it like a changelog.
-    s = context.changes.get_as_string("Changes")
-    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
-    s = s + "\n  --\n"
-    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
-
-    ch = changelog.Changelog(lines, allow_empty_author=True)
-    changes_versions = set([str(v) for v in ch.get_versions()])
 
     # Check Launchpad for pending package versions in -proposed.
     lp_ubuntu = context.lp.distributions["ubuntu"]
@@ -149,6 +133,30 @@ def check_missing_pending_changelog_entry(context: Context):
 
         pending_versions.add(v.source_package_version)
 
+    return pending_versions
+
+
+def check_missing_pending_changelog_entry(context: Context):
+    """
+    Checks if the changes file is missing pending changelog entries,
+    i.e. entries for uploads which are still in -proposed. This is a warning
+    for the development release, and an error for stable releases.
+    """
+    if context.is_unreleased():
+        context.lint_skip("changelog is still UNRELEASED")
+
+    package = context.get_source_package_name()
+
+    # Mangle the Changes field so that we can parse it like a changelog.
+    s = context.changes.get_as_string("Changes")
+    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
+    s = s + "\n  --\n"
+    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
+
+    ch = changelog.Changelog(lines, allow_empty_author=True)
+    changes_versions = set([str(v) for v in ch.get_versions()])
+
+    pending_versions = _get_pending_versions(context)
     if not pending_versions:
         # There is not anything in -proposed, nothing more to do.
         return
