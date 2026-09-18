@@ -496,6 +496,11 @@ hello ({prev_version}) noble; urgency=high
             ("2.10-3", "2.10-3ubuntu0.1", True),
             ("2.10-3", "2.10-3ubuntu1", False),
             ("2.10-3", "2.10-4", False),
+            # Same idea as above, but upstream version contains git snapshot
+            ("2.10.0+git106-g3e4031b-1", "2.10.0+git106-g3e4031b-1ubuntu0.1", True),
+            ("2.10.0+git106-13e4031b-1", "2.10.0+git106-13e4031b-1ubuntu0.1", True),
+            ("2.10.0+git106-g3e4031b-1", "2.10.0+git106-g3e4031b-1ubuntu1", False),
+            ("2.10.0+git106-13e4031b-1", "2.10.0+git106-13e4031b-1ubuntu1", False),
             # 2.10-3ubuntu0.1 -> "2.10-3ubuntu0.2"
             ("2.10-3ubuntu0.1", "2.10-3ubuntu0.2", True),
             ("2.10-3ubuntu0.1", "2.10-3ubuntu1", False),
@@ -557,7 +562,7 @@ hello ({prev_version}) noble; urgency=high
             else:
                 with pytest.raises(
                     ubuntu_lint.LintException,
-                    match=f"{next_version} does not match expected version",
+                    match=re.escape(f"{next_version} does not match expected version"),
                 ):
                     ubuntu_lint.check_sru_version_string_convention(context)
 

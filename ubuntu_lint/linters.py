@@ -360,16 +360,17 @@ def check_sru_version_string_convention(context: Context):
     next_version = context.get_package_version()
     prev_version = context.changelog_entry_by_index(1).version
 
-    match = re.search(r"-[0-9]*", prev_version.full_version)
-    if match:
-        upstream_version, debian_revison, ubuntu_revision = str(prev_version).partition(
-            match.group()
-        )
-    else:
+    if not prev_version.debian_version:
         context.lint_skip(
             "check not implemented for native packages, "
             f"please check {docs} to ensure version string is correct"
         )
+
+    match = re.search(r"[0-9]+", prev_version.debian_version)
+    if match:
+        upstream_version, debian_revison, ubuntu_revision = str(
+            prev_version
+        ).rpartition(f"-{match.group()}")
 
     series_version = distro_info.UbuntuDistroInfo().version(context.get_series())
     # Strip off " LTS" if needed.
