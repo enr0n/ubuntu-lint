@@ -549,8 +549,15 @@ def check_merge_missing_new_debian_changelog(context: Context):
     ch = changelog.Changelog(lines, allow_empty_author=True)
     changes_versions = set([str(v) for v in ch.get_versions()])
 
-    if changes_versions != expect:
-        context.lint_fail(
-            f"source package should be built with -v{old_version} "
-            "to include Debian changelog since last merge"
-        )
+    msg = (
+        f"source package should be built with -v{old_version} "
+        "to include Debian changelog since last merge"
+    )
+
+    if changes_versions > expect:
+        pending_versions = _get_pending_versions(context)
+        if changes_versions - pending_versions != expect:
+            context.lint_fail(msg)
+
+    elif changes_versions != expect:
+        context.lint_fail(msg)

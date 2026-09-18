@@ -270,7 +270,13 @@ hello (2.10-2ubuntu2) resolute; urgency=medium
 
   * Fix a bug (LP: #12345679)
 
- -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+ -- John Doe <john.doe@example.com>  Fri, 02 Jan 2026 15:13:02 -0500
+
+hello (2.10-2ubuntu1) resolute; urgency=medium
+
+  * Fix FTBFS (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Thu, 01 Jan 2026 15:13:02 -0500
 """)
 
 
@@ -977,11 +983,17 @@ def test_check_sru_bug_missing_release_tasks(mock_lp_handle, add_bug_mock):
         )
 
 
-def test_check_merge_missing_new_debian_changelog():
+def test_check_merge_missing_new_debian_changelog(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-2ubuntu2"),
+    ]
     ubuntu_lint.check_merge_missing_new_debian_changelog(
         ubuntu_lint.Context(
             changes=basic_changes_merge,
             debian_changelog=basic_changelog_merge,
+            launchpad_handle=mock_lp_handle,
         )
     )
 
@@ -1000,6 +1012,7 @@ def test_check_merge_missing_new_debian_changelog():
             ubuntu_lint.Context(
                 changes=bad_changes,
                 debian_changelog=basic_changelog_merge,
+                launchpad_handle=mock_lp_handle,
             )
         )
 
@@ -1032,3 +1045,48 @@ def test_check_merge_missing_new_debian_changelog_skip(
         )
 
     assert e.value.result == ubuntu_lint.LintResult.SKIP
+
+
+def test_check_merge_missing_new_debian_changelog_with_pending(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-2ubuntu2", pocket="Proposed"),
+    ]
+    ubuntu_lint.check_merge_missing_new_debian_changelog(
+        ubuntu_lint.Context(
+            changes=basic_changes_merge,
+            debian_changelog=basic_changelog_merge,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+    # Expand the changes, it should still pass.
+    expanded_changes = copy.deepcopy(basic_changes_merge)
+    expanded_changes["Changes"] = """
+ hello (2.12-1ubuntu1) resolute; urgency=medium
+ .
+   * Merge from Debian unstable (LP: #12345678)
+ .
+ hello (2.12-1) unstable; urgency=medium
+ .
+   * New upstream release
+ .
+ hello (2.11-2) unstable; urgency=medium
+ .
+   * Fix a bug
+ .
+ hello (2.11-1) unstable; urgency=medium
+ .
+   * New upstream release
+ .
+ hello (2.10-2ubuntu2) resolute; urgency=medium
+ .
+   * Fix a bug (LP: #12345679)"""
+    ubuntu_lint.check_merge_missing_new_debian_changelog(
+        ubuntu_lint.Context(
+            changes=expanded_changes,
+            debian_changelog=basic_changelog_merge,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
