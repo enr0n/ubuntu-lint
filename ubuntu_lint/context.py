@@ -296,7 +296,13 @@ class Context:
         release.
         """
         di = distro_info.UbuntuDistroInfo()
-        stable = set(di.supported() + di.supported_esm()) - set([di.devel()])
+
+        try:
+            devel = set([di.devel()])
+        except distro_info.DistroDataOutdated:
+            devel = set()
+
+        stable = set(di.supported() + di.supported_esm()) - devel
 
         return self.get_series() in stable
 
