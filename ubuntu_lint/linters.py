@@ -566,3 +566,41 @@ def check_merge_missing_new_debian_changelog(context: Context):
 
     elif changes_versions != expect:
         context.lint_fail(msg)
+
+
+def check_bug_references_target_wrong_package(context: Context):
+    """
+    Checks that if a bug is referenced in the upload, then the bug has a task for this
+    source package.
+    """
+    package = context.get_source_package_name()
+
+    try:
+        bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+    except MissingContextException:
+        bugs = [str(bug) for bug in context.changelog_entry.lp_bugs_closed]
+
+    if not bugs:
+        context.lint_skip("no bug references")
+
+    wrong_target = []
+    for n in bugs:
+        try:
+            bug = context.lp.bugs[n]
+        except KeyError:
+            context.lint_fail(f"bug {n} does not exist or is not public")
+
+        for task in bug.bug_tasks:
+            if task.bug_target_name == f"{package} (Ubuntu)":
+                break
+        else:
+            wrong_target.append(f"LP: #{n}")
+
+    if wrong_target:
+        context.lint_fail(
+            "{} {} missing a bug task for {}".format(
+                ", ".join(wrong_target),
+                "is" if len(wrong_target) == 1 else "are",
+                package,
+            )
+        )

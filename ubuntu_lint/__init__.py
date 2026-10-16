@@ -22,6 +22,7 @@ from .linters import (
     check_sru_version_string_breaks_upgrades,
     check_sru_version_string_convention,
     check_merge_missing_new_debian_changelog,
+    check_bug_references_target_wrong_package,
 )
 
 __all__ = [
@@ -43,4 +44,5 @@ __all__ = [
     "check_sru_version_string_breaks_upgrades",
     "check_sru_version_string_convention",
     "check_merge_missing_new_debian_changelog",
+    "check_bug_references_target_wrong_package",
 ]

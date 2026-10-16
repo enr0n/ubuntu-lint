@@ -1107,6 +1107,109 @@ def test_check_sru_bug_missing_release_tasks(mock_lp_handle, add_bug_mock):
         )
 
 
+def test_check_bug_references_target_wrong_package(mock_lp_handle, add_bug_mock):
+    package = basic_changes_ubuntu_delta["Source"]
+    bug_number = basic_changes_ubuntu_delta["Launchpad-Bugs-Fixed"].split()[0]
+
+    mock_lp_handle.bugs = {
+        bug_number: add_bug_mock(
+            bug_number,
+            bug_tasks=[SimpleNamespace(bug_target_name=f"{package} (Ubuntu)")],
+        )
+    }
+    ubuntu_lint.check_bug_references_target_wrong_package(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_delta, launchpad_handle=mock_lp_handle
+        )
+    )
+
+    # The bug does not have a task for this source package.
+    mock_lp_handle.bugs = {
+        bug_number: add_bug_mock(
+            bug_number,
+            bug_tasks=[SimpleNamespace(bug_target_name="foobar (Ubuntu)")],
+        )
+    }
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape(f"LP: #{bug_number} is missing a bug task for {package}"),
+    ):
+        ubuntu_lint.check_bug_references_target_wrong_package(
+            ubuntu_lint.Context(
+                changes=basic_changes_ubuntu_delta, launchpad_handle=mock_lp_handle
+            )
+        )
+
+    changes = copy.deepcopy(basic_changes_ubuntu_delta)
+    changes["Launchpad-Bugs-Fixed"] = "12345678 87654321"
+
+    mock_lp_handle.bugs = {
+        n: add_bug_mock(
+            n, bug_tasks=[SimpleNamespace(bug_target_name="foobar (Ubuntu)")]
+        )
+        for n in ("12345678", "87654321")
+    }
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape(
+            f"LP: #12345678, LP: #87654321 are missing a bug task for {package}"
+        ),
+    ):
+        ubuntu_lint.check_bug_references_target_wrong_package(
+            ubuntu_lint.Context(changes=changes, launchpad_handle=mock_lp_handle)
+        )
+
+
+def test_check_bug_references_target_wrong_package_missing_bug(mock_lp_handle):
+    bug_number = basic_changes_ubuntu_delta["Launchpad-Bugs-Fixed"].split()[0]
+    mock_lp_handle.bugs = {}
+
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape(f"bug {bug_number} does not exist or is not public"),
+    ):
+        ubuntu_lint.check_bug_references_target_wrong_package(
+            ubuntu_lint.Context(
+                changes=basic_changes_ubuntu_delta, launchpad_handle=mock_lp_handle
+            )
+        )
+
+
+def test_check_bug_references_target_wrong_package_from_changelog(
+    mock_lp_handle, add_bug_mock
+):
+    dch = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    mock_lp_handle.bugs = {
+        "12345678": add_bug_mock(
+            "12345678",
+            bug_tasks=[SimpleNamespace(bug_target_name="some-other (Ubuntu)")],
+        )
+    }
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape("LP: #12345678 is missing a bug task for hello"),
+    ):
+        ubuntu_lint.check_bug_references_target_wrong_package(
+            ubuntu_lint.Context(debian_changelog=dch, launchpad_handle=mock_lp_handle)
+        )
+
+
+def test_check_bug_references_target_wrong_package_skip():
+    with pytest.raises(ubuntu_lint.LintException, match="no bug references") as e:
+        ubuntu_lint.check_bug_references_target_wrong_package(
+            ubuntu_lint.Context(changes=basic_changes_no_ubuntu_delta)
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP
+
+
 def test_check_merge_missing_new_debian_changelog(
     mock_lp_handle, add_published_source_mock
 ):
