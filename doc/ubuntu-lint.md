@@ -57,6 +57,10 @@ Each lint has a corresponding flag `--<linter-name>=` which accepts one of: `aut
 
 # AVAILABLE LINTERS
 
+## bug-references-target-wrong-package
+
+Detects if a bug reference in the changelog does not actually target this source package.
+
 ## distribution-invalid
 Detects invalid or unsupported distribution field, such as incorrect distribution names.
 

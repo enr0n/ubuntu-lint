@@ -1,0 +1,5 @@
+{
+    "description": "check if bug references target valid bugs",
+    "path": "ubuntu_lint.dput.dput_bug_references_target_wrong_package",
+    "pre": true
+}
