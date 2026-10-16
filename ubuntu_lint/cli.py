@@ -179,6 +179,12 @@ all_linters = [
         default_level_stable=None,
         requires={"changelog", "changes"},
     ),
+    LinterConfiguration(
+        name="bug-references-target-wrong-package",
+        fn=ubuntu_lint.check_bug_references_target_wrong_package,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 
