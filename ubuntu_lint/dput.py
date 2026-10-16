@@ -260,3 +260,18 @@ def dput_sru_version_string_convention(
         interface,
         can_ignore=True,
     )
+
+
+def dput_bug_references_target_wrong_package(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_bug_references_target_wrong_package.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_bug_references_target_wrong_package,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )
