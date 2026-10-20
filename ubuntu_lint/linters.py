@@ -51,9 +51,25 @@ def check_distribution_invalid(context: Context):
     """
     Check that the debian/changelog entry uses a valid Ubuntu release name.
     """
+    di = distro_info.UbuntuDistroInfo()
+    try:
+        di.devel()
+        outdated = False
+    except distro_info.DistroDataOutdated:
+        outdated = True
+
     dist = context.get_series()
     if not distro_info.UbuntuDistroInfo().valid(dist):
-        context.lint_fail(f'"{dist}" is not a valid Ubuntu codename')
+        if (
+            not outdated
+            or distro_info.DebianDistroInfo().valid(dist)
+            or dist == "UNRELEASED"
+        ):
+            context.lint_fail(f'"{dist}" is not a valid Ubuntu codename')
+        else:
+            context.lint_warn(
+                f'"{dist}" is not a known codename, but distro-info-data is outdated'
+            )
 
 
 def check_missing_git_ubuntu_references(context: Context):
