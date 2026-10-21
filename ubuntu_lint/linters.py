@@ -312,6 +312,9 @@ def _rmadison_get_max_version_by_series(
     if pending:
         statuses.append("Pending")
 
+    di = distro_info.UbuntuDistroInfo()
+    supported = set(di.supported() + di.supported_esm())
+
     max_version_by_series: dict[str, str] = {}
     try:
         published = context.lp.distributions["ubuntu"].main_archive.getPublishedSources(
@@ -322,6 +325,9 @@ def _rmadison_get_max_version_by_series(
             version = entry.source_package_version
             series = entry.distro_series_link.rstrip("/").rpartition("/")[2]
             pocket = entry.pocket
+
+            if series not in supported:
+                continue
 
             if pocket == "Backports":
                 # Exclude -backports, as different rules apply.

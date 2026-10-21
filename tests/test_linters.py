@@ -457,7 +457,6 @@ def test_check_sru_version_string_breaks_upgrades(mock_lp_handle):
                hello | 2.10-2ubuntu2 | focal           | source
                hello | 2.10-2ubuntu4 | jammy           | source
                hello | 2.10-3build1  | noble           | source
-               hello | 2.10-5        | questing        | source
                hello | 2.10-5build1  | resolute        | source
         """),
         # Package in universe
@@ -469,13 +468,10 @@ def test_check_sru_version_string_breaks_upgrades(mock_lp_handle):
                hello | 2.10-2ubuntu2 | focal/universe           | source
                hello | 2.10-2ubuntu4 | jammy/universe           | source
                hello | 2.10-3build1  | noble/universe           | source
-               hello | 2.10-5        | questing/universe        | source
                hello | 2.10-5build1  | resolute/universe        | source
         """),
         # SRU and NEW package (no rmadison entry yet for target series)
-        textwrap.dedent("""hello | 2.10-5        | resolute        | source
-               hello | 2.10-5build1  | stonking        | source
-        """),
+        textwrap.dedent("hello | 2.10-5        | resolute        | source"),
     ]
 
     for tmpl in rmadison_tmpls:
@@ -488,7 +484,7 @@ def test_check_sru_version_string_breaks_upgrades(mock_lp_handle):
             )
         )
 
-        # Simulate a version bump in noble that is greater than questing.
+        # Simulate a version bump in noble that is greater than next release.
         changes_bad_version = copy.deepcopy(basic_changes_sru)
         changes_bad_version["Version"] = "2.10-5ubuntu0.1"
         with pytest.raises(ubuntu_lint.LintException):
@@ -534,6 +530,15 @@ def test_check_sru_version_string_breaks_upgrades_with_pending(mock_lp_handle):
                     status="Pending",
                 )
             )
+            # Unsupported series
+            ret.append(
+                SimpleNamespace(
+                    source_package_version="2.10-3ubuntu1",
+                    distro_series_link="https://api.launchpad.net/devel/ubuntu/questing",
+                    pocket="Proposed",
+                    status="Pending",
+                )
+            )
 
         if not ret:
             raise pytest.fail("mock implementation is buggy")
@@ -563,7 +568,6 @@ def test_rmadison_get_max_version_by_series(mock_lp_handle):
             hello | 2.10-3build1    | noble          | source
             hello | 2.10-3build2    | noble-proposed | source
             hello | 2.10-3ubuntu0.1 | noble-updates   | source
-            hello | 2.10-5          | questing        | source
             hello | 2.10-6~24.04.1  | noble-backports | source
             hello | 2.10-3build1    | noble-security | source
         """)
@@ -574,7 +578,6 @@ def test_rmadison_get_max_version_by_series(mock_lp_handle):
     ) == {
         "jammy": "2.10-2ubuntu4",
         "noble": "2.10-3ubuntu0.1",
-        "questing": "2.10-5",
     }
     mock_lp_handle.distributions.__getitem__.assert_called_once_with("ubuntu")
     mock_lp_handle.main_archive.getPublishedSources.assert_called_once_with(
@@ -650,7 +653,6 @@ hello ({prev_version}) noble; urgency=high
                hello | 2.10-2ubuntu2 | focal           | source
                hello | 2.10-2ubuntu4 | jammy           | source
                hello | {prev_version}| noble           | source
-               hello | 2.10-5        | questing        | source
                hello | 2.10-5build1  | resolute        | source
         """),
         # Same version in two releases
@@ -662,8 +664,7 @@ hello ({prev_version}) noble; urgency=high
                hello | 2.10-2ubuntu2 | focal           | source
                hello | 2.10-2ubuntu4 | jammy           | source
                hello | {prev_version}| noble           | source
-               hello | {prev_version}| questing        | source
-               hello | 2.10-5build1  | resolute        | source
+               hello | {prev_version}| resolute        | source
         """),
     ]
 
